@@ -145,53 +145,6 @@ const authenticateAPI = (req, res, next) => {
   next();
 };
 
-// 6. Input Validation Middleware for Water Level Data
-const validateWaterLevel = (req, res, next) => {
-  const { deviceId, distanceCm, waterLevelCm, waterPercentage, tankHeightCm, timestamp } = req.body;
-  const errors = [];
-  
-  // Validate deviceId (required, string, max 50 chars)
-  if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length === 0) {
-    errors.push('deviceId is required and must be a non-empty string');
-  } else if (deviceId.length > 50) {
-    errors.push('deviceId must be 50 characters or less');
-  }
-  
-  // Validate numeric fields (optional but must be valid if provided)
-  const numericFields = [
-    { name: 'distanceCm', value: distanceCm },
-    { name: 'waterLevelCm', value: waterLevelCm },
-    { name: 'waterPercentage', value: waterPercentage },
-    { name: 'tankHeightCm', value: tankHeightCm }
-  ];
-  
-  numericFields.forEach(field => {
-    if (field.value !== undefined && field.value !== null) {
-      const numValue = parseFloat(field.value);
-      if (isNaN(numValue) || numValue < 0 || numValue > 10000) {
-        errors.push(`${field.name} must be a valid number between 0 and 10000`);
-      }
-    }
-  });
-  
-  // Validate timestamp format if provided
-  if (timestamp && typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) {
-      errors.push('timestamp must be a valid ISO 8601 date string');
-    }
-  }
-  
-  if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      error: 'Validation failed',
-      errors: errors
-    });
-  }
-  
-  next();
-};
 
 // ============================================================================
 // API ENDPOINTS
@@ -223,10 +176,10 @@ const validateWaterLevel = (req, res, next) => {
  * 
  * Use Case: IoT device (ESP32) sends water level readings every 5 seconds
  * - Device includes API key in header for authentication
- * - Server validates data format and values
+ * - No payload validation (accepts any form of data from IoT hardware)
  * - Rate limiting prevents abuse while allowing normal IoT frequency
  */
-app.post('/api/water-level', postLimiter, authenticateAPI, validateWaterLevel, (req, res) => {
+app.post('/api/water-level', postLimiter, authenticateAPI, (req, res) => {
   try {
     const request = req.body;
     
